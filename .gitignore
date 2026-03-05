@@ -67,6 +67,10 @@ temp/
 bandit-*.html
 bandit-*.txt
 
+# Langfuse observability stack (local testing only, never commit)
+langfuse/
+api/services/observability.py
+
 # Reference documents (local working files, not part of this repo)
 *.docx
 *.docx.pdf
