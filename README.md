@@ -78,14 +78,14 @@ The application follows a modular two-service architecture with a React frontend
 
 ```mermaid
 graph TB
-    subgraph "User Interface (transpiler-ui — port 3000)"
+    subgraph "User Interface (transpiler-ui - port 3000)"
         A[React Frontend]
         A1[Code Input]
         A2[PDF Upload]
         A3[Language Selection]
     end
 
-    subgraph "FastAPI Backend (transpiler-api — port 5001)"
+    subgraph "FastAPI Backend (transpiler-api - port 5001)"
         B[API Server]
         C[PDF Service]
         D[API Client]
