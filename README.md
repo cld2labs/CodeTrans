@@ -10,37 +10,50 @@ An AI-powered full-stack application that translates source code between program
 
 ## Table of Contents
 
-- [Project Overview](#project-overview)
-- [How It Works](#how-it-works)
-- [Architecture](#architecture)
-  - [Architecture Diagram](#architecture-diagram)
-  - [Architecture Components](#architecture-components)
-  - [Service Components](#service-components)
-  - [Typical Flow](#typical-flow)
-- [Get Started](#get-started)
-  - [Prerequisites](#prerequisites)
-  - [Quick Start (Docker Deployment)](#quick-start-docker-deployment)
-  - [Local Development Setup](#local-development-setup)
-- [Project Structure](#project-structure)
-- [Usage Guide](#usage-guide)
-- [Performance Tips](#performance-tips)
-- [LLM Provider Configuration](#llm-provider-configuration)
-  - [OpenAI](#openai)
-  - [Groq](#groq)
-  - [Ollama](#ollama)
-  - [OpenRouter](#openrouter)
-  - [Custom OpenAI-Compatible API](#custom-openai-compatible-api)
-  - [Switching Providers](#switching-providers)
-- [Environment Variables](#environment-variables)
-  - [Core LLM Configuration](#core-llm-configuration)
-  - [Generation Parameters](#generation-parameters)
-  - [File Upload Limits](#file-upload-limits)
-  - [Session Management](#session-management)
-  - [Server Configuration](#server-configuration)
-- [Technology Stack](#technology-stack)
-- [Troubleshooting](#troubleshooting)
-- [License](#license)
-- [Disclaimer](#disclaimer)
+- [CodeTrans — AI-Powered Code Translation](#codetrans--ai-powered-code-translation)
+  - [Table of Contents](#table-of-contents)
+  - [Project Overview](#project-overview)
+  - [How It Works](#how-it-works)
+  - [Architecture](#architecture)
+    - [Architecture Diagram](#architecture-diagram)
+    - [Architecture Components](#architecture-components)
+    - [Service Components](#service-components)
+    - [Typical Flow](#typical-flow)
+  - [Get Started](#get-started)
+    - [Prerequisites](#prerequisites)
+      - [Verify Installation](#verify-installation)
+    - [Quick Start (Docker Deployment)](#quick-start-docker-deployment)
+      - [1. Clone the Repository](#1-clone-the-repository)
+      - [2. Configure the Environment](#2-configure-the-environment)
+      - [3. Build and Start the Application](#3-build-and-start-the-application)
+      - [4. Access the Application](#4-access-the-application)
+      - [5. Verify Services](#5-verify-services)
+      - [6. Stop the Application](#6-stop-the-application)
+    - [Local Development Setup](#local-development-setup)
+  - [Project Structure](#project-structure)
+  - [Usage Guide](#usage-guide)
+  - [Performance Tips](#performance-tips)
+  - [LLM Provider Configuration](#llm-provider-configuration)
+    - [OpenAI](#openai)
+    - [Groq](#groq)
+    - [Ollama](#ollama)
+    - [OpenRouter](#openrouter)
+    - [Custom OpenAI-Compatible API](#custom-openai-compatible-api)
+    - [Switching Providers](#switching-providers)
+  - [Environment Variables](#environment-variables)
+    - [Core LLM Configuration](#core-llm-configuration)
+    - [Generation Parameters](#generation-parameters)
+    - [File Upload Limits](#file-upload-limits)
+    - [Session Management](#session-management)
+    - [Server Configuration](#server-configuration)
+  - [Technology Stack](#technology-stack)
+    - [Backend](#backend)
+    - [Frontend](#frontend)
+  - [Troubleshooting](#troubleshooting)
+    - [Common Issues](#common-issues)
+    - [Debug Mode](#debug-mode)
+  - [License](#license)
+  - [Disclaimer](#disclaimer)
 
 ---
 
@@ -78,14 +91,14 @@ The application follows a modular two-service architecture with a React frontend
 
 ```mermaid
 graph TB
-    subgraph "User Interface (transpiler-ui - port 3000)"
+    subgraph "User Interface (port 3000)"
         A[React Frontend]
         A1[Code Input]
         A2[PDF Upload]
         A3[Language Selection]
     end
 
-    subgraph "FastAPI Backend (transpiler-api - port 5001)"
+    subgraph "FastAPI Backend (port 5001)"
         B[API Server]
         C[PDF Service]
         D[API Client]
