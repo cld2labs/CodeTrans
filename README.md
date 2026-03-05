@@ -91,11 +91,11 @@ graph TB
         D[API Client]
     end
 
-    subgraph "Inference — Option A: Remote"
+    subgraph "Inference - Option A: Remote"
         E[OpenAI / Groq / OpenRouter<br/>Enterprise Gateway]
     end
 
-    subgraph "Inference — Option B: Local"
+    subgraph "Inference - Option B: Local"
         F[Ollama on Host<br/>host.docker.internal:11434]
     end
 
@@ -112,10 +112,10 @@ graph TB
     D --> B
     B --> A
 
-    style A fill:#e1f5ff
-    style B fill:#fff4e1
-    style E fill:#e1ffe1
-    style F fill:#f3e5f5
+    style A fill:#e1f5ff,color:#000
+    style B fill:#fff4e1,color:#000
+    style E fill:#e1ffe1,color:#000
+    style F fill:#f3e5f5,color:#000
 ```
 
 ### Architecture Components
