@@ -48,7 +48,7 @@ VERIFY_SSL = os.getenv("VERIFY_SSL", "true").lower() == "true"
 LANGFUSE_ENABLED    = os.getenv("LANGFUSE_ENABLED", "false").lower() == "true"
 LANGFUSE_PUBLIC_KEY = os.getenv("LANGFUSE_PUBLIC_KEY", "")
 LANGFUSE_SECRET_KEY = os.getenv("LANGFUSE_SECRET_KEY", "")
-LANGFUSE_HOST       = os.getenv("LANGFUSE_HOST", "http://localhost:3001")
+LANGFUSE_HOST       = os.getenv("LANGFUSE_HOST", "http://host.docker.internal:3001")
 
 # CORS Settings
 CORS_ALLOW_ORIGINS = ["*"]  # Update with specific origins in production
