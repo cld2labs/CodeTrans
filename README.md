@@ -1,34 +1,35 @@
-## Code Translation
+# CodeTrans — AI-Powered Code Translation
 
-A full-stack code translation application that converts code between programming languages using AI.
-The system integrates a FastAPI backend, alongside a modern React + Vite + Tailwind CSS frontend for an intuitive translation experience.
+A full-stack code translation application that converts source code between programming languages using AI. Built with a FastAPI backend and a React + Vite + Tailwind CSS frontend, orchestrated via Docker Compose.
 
 ## Table of Contents
 
-- [Code Translation](#code-translation)
-- [Table of Contents](#table-of-contents)
 - [Project Overview](#project-overview)
 - [Features](#features)
 - [Architecture](#architecture)
 - [Prerequisites](#prerequisites)
   - [System Requirements](#system-requirements)
-  - [Required API Configuration](#required-api-configuration)
-  - [Local Development Configuration](#local-development-configuration)
+  - [Inference Provider Options](#inference-provider-options)
   - [Verify Docker Installation](#verify-docker-installation)
-- [Quick Start Deployment](#quick-start-deployment)
+- [Quick Start](#quick-start)
   - [Clone the Repository](#clone-the-repository)
-  - [Set up the Environment](#set-up-the-environment)
-  - [Running the Application](#running-the-application)
-- [User Interface](#user-interface)
+  - [Configure the Environment](#configure-the-environment)
+  - [Run the Application](#run-the-application)
+- [Using the Application](#using-the-application)
   - [Stopping the Application](#stopping-the-application)
 - [Troubleshooting](#troubleshooting)
-- [Additional Info](#additional-info)
+- [Validated Models](#validated-models)
 
 ---
 
 ## Project Overview
 
-The **Code Translation** application demonstrates how large language models can be used to translate code between different programming languages. It accepts source code in one language, processes it and returns translated code in the target language. This project integrates seamlessly with cloud-hosted APIs or local model endpoints, offering flexibility for research, enterprise, or educational use.
+**CodeTrans** demonstrates how code-specialized large language models can be used to translate source code between different programming languages. It supports two inference modes:
+
+- **Remote** — any OpenAI-compatible enterprise endpoint (GenAI Gateway, APISIX Gateway, etc.)
+- **Ollama** — local inference running natively on the host machine, with full GPU acceleration on Apple Silicon
+
+This makes CodeTrans suitable for enterprise deployments, air-gapped environments, local experimentation, and hardware benchmarking.
 
 ---
 
@@ -36,85 +37,86 @@ The **Code Translation** application demonstrates how large language models can 
 
 **Backend**
 
-- Code translation between 6 languages (Java, C, C++, Python, Rust, Go)
-- PDF code extraction with pattern recognition
-- Enterprise inference endpoints
-- Token-based authentication for inference API
-- Comprehensive error handling and logging
-- File validation and size limits
-- CORS enabled for web integration
-- Health check endpoints
-- Modular architecture (config + models + services)
+- Code translation across 6 languages: Java, C, C++, Python, Rust, Go
+- Dual inference path: text completions for remote APIs, chat completions for Ollama
+- PDF code extraction with pattern recognition (drag-and-drop upload)
+- Token-based authentication for enterprise gateways (GenAI / APISIX)
+- Input validation, file size limits, and comprehensive error handling
+- Health check endpoint
+- Modular architecture (`config` → `models` → `services`)
 
 **Frontend**
 
-- Side-by-side code comparison interface
-- Language selection dropdowns (6 languages)
+- Side-by-side code editor with language pill selectors
 - PDF file upload with drag-and-drop support
-- Real-time character counter with limits
-- Modern, responsive design with Tailwind CSS
-- Built with Vite for fast development
-- Live status updates
-- Copy to clipboard functionality
-- Mobile-friendly
+- Real-time character counter
+- Dark mode (default) with localStorage persistence
+- One-click copy of translated output
+- Live status indicator
+- Responsive, mobile-friendly layout
 
 ---
 
 ## Architecture
 
-Below is the architecture as it consists of a server that waits for code input or PDF uploads. Once code is provided, the server calls the CodeLlama model to translate the code to the target language.
-
 ```mermaid
-  graph TB
-      subgraph "User Interface"
-          A[React Frontend<br/>Port 3000]
-          A1[Code Input]
-          A2[PDF Upload]
-          A3[Language Selection]
-      end
+graph TB
+    subgraph "User Interface (transpiler-ui — port 3000)"
+        A[React Frontend]
+        A1[Code Input]
+        A2[PDF Upload]
+        A3[Language Selection]
+    end
 
-      subgraph "FastAPI Backend"
-          B[API Server<br/>Port 5001]
-          C[PDF Service]
-          D[API Client]
-      end
+    subgraph "FastAPI Backend (transpiler-api — port 5001)"
+        B[API Server]
+        C[PDF Service]
+        D[API Client]
+    end
 
-      subgraph "External Services"
-          E[CodeLlama-34b Model]
-      end
+    subgraph "Inference — Option A: Remote"
+        E[Enterprise Gateway<br/>GenAI / APISIX]
+    end
 
-      A1 --> B
-      A2 --> B
-      A3 --> B
-      B --> C
-      C -->|Extracted Code| B
-      B --> D
-      D -->|Translate Code + Token| E
-      E -->|Translated Code| D
-      D --> B
-      B --> A
+    subgraph "Inference — Option B: Local"
+        F[Ollama on Host<br/>host.docker.internal:11434]
+    end
 
-      style A fill:#e1f5ff
-      style B fill:#fff4e1
-      style E fill:#e1ffe1
+    A1 --> B
+    A2 --> B
+    A3 --> B
+    B --> C
+    C -->|Extracted Code| B
+    B --> D
+    D -->|INFERENCE_PROVIDER=remote| E
+    D -->|INFERENCE_PROVIDER=ollama| F
+    E -->|Translated Code| D
+    F -->|Translated Code| D
+    D --> B
+    B --> A
+
+    style A fill:#e1f5ff
+    style B fill:#fff4e1
+    style E fill:#e1ffe1
+    style F fill:#f3e5f5
 ```
 
-This application is built with enterprise inference capabilities using token-based authentication and CodeLlama-34b-instruct for code translation.
+**Service components:**
 
-**Service Components:**
+| Service | Container | Host Port | Description |
+|---|---|---|---|
+| `transpiler-api` | `transpiler-api` | `5001` | FastAPI backend — validation, PDF extraction, inference orchestration |
+| `transpiler-ui` | `transpiler-ui` | `3000` | React frontend — served by Nginx, proxies `/api/` to the backend |
 
-1. **React Web UI (Port 3000)** -  Provides side-by-side code comparison interface with language selection, PDF upload, and real-time translation results
+> **Ollama is intentionally not a Docker service.** On macOS (Apple Silicon), running Ollama in Docker bypasses Metal GPU (MPS) acceleration and falls back to CPU-only inference. Ollama must run natively on the host so the backend container can reach it via `host.docker.internal:11434`.
 
-2. **FastAPI Backend (Port 5001)** -  Handles code validation, PDF extraction, inference API authentication, and orchestrates code translation through CodeLlama model
+**Typical request flow:**
 
-**Typical Flow:**
-
-1. User enters code or uploads a PDF through the web UI.
-2. The backend validates the input and extracts code if needed.
-3. The backend authenticates with inference API and calls CodeLlama model.
-4. The model translates the code to the target language.
-5. The translated code is returned and displayed to the user.
-6. User can copy the translated code with one click.
+1. User enters code or uploads a PDF in the web UI.
+2. The backend validates the input; PDF text is extracted if needed.
+3. The backend calls the configured inference endpoint (remote or Ollama).
+4. The model returns translated code, which is displayed in the right panel.
+5. User copies the result with one click.
 
 ---
 
@@ -122,243 +124,158 @@ This application is built with enterprise inference capabilities using token-bas
 
 ### System Requirements
 
-Before you begin, ensure you have the following installed:
+- **Docker** and **Docker Compose**
+- An inference endpoint — either a remote gateway (Option A) or [Ollama](https://ollama.com/download) installed natively on the host (Option B)
 
-- **Docker and Docker Compose**
-- **Enterprise inference endpoint access** (token-based authentication)
+### Inference Provider Options
 
-### Required API Configuration
+#### Option A — Remote OpenAI-compatible API (`INFERENCE_PROVIDER=remote`)
 
-**For Inference Service (Code Translation):**
+Supports any OpenAI-compatible enterprise inference endpoint:
 
-This application supports multiple inference deployment patterns:
+- **GenAI Gateway** — provide the base URL and your `litellm_master_key` as the token
+- **APISIX Gateway** — provide the gateway URL (including model name in path) and a Keycloak-generated token
 
-- **GenAI Gateway**: Provide your GenAI Gateway URL and API key
-  - To generate the GenAI Gateway API key, use the [generate-vault-secrets.sh](https://github.com/opea-project/Enterprise-Inference/blob/main/core/scripts/generate-vault-secrets.sh) script
-  - The API key is the `litellm_master_key` value from the generated `vault.yml` file
-  
-- **APISIX Gateway**: Provide your APISIX Gateway URL and authentication token
-  - To generate the APISIX authentication token, use the [generate-token.sh](https://github.com/opea-project/Enterprise-Inference/blob/main/core/scripts/generate-token.sh) script
-  - The token is generated using Keycloak client credentials
+Set in `.env`:
 
-### Local Development Configuration
+```bash
+INFERENCE_PROVIDER=remote
+INFERENCE_API_ENDPOINT=https://your-gateway.example.com
+INFERENCE_API_TOKEN=your-token-here
+INFERENCE_MODEL_NAME=codellama/CodeLlama-34b-Instruct-hf
+```
 
-**For Local Testing Only (Optional)**
+#### Option B — Ollama local inference (`INFERENCE_PROVIDER=ollama`)
 
-If you're testing with a local inference endpoint using a custom domain (e.g., `api.example.com` mapped to localhost in your hosts file):
+Runs inference on the host machine with full GPU acceleration (Metal on Apple Silicon, CUDA on Linux).
 
-1. Edit `.env` and set:
+1. Install Ollama: https://ollama.com/download
+2. Pull a model:
+
    ```bash
-   LOCAL_URL_ENDPOINT=api.example.com
+   # Production — best translation quality (~20 GB)
+   ollama pull codellama:34b
+
+   # Testing / SLM benchmarking (~4 GB, fast)
+   ollama pull codellama:7b
+
+   # Other recommended code models
+   ollama pull deepseek-coder:6.7b
+   ollama pull qwen2.5-coder:7b
+   ollama pull codellama:13b
    ```
-   (Use the domain name from your INFERENCE_API_ENDPOINT without `https://`)
 
-2. This allows Docker containers to resolve your local domain correctly.
+3. Confirm Ollama is running:
 
-**Note:** For public domains or cloud-hosted endpoints, leave the default value `not-needed`.
+   ```bash
+   curl http://localhost:11434/api/tags
+   ```
+
+4. Set in `.env`:
+
+   ```bash
+   INFERENCE_PROVIDER=ollama
+   INFERENCE_API_ENDPOINT=http://host.docker.internal:11434
+   INFERENCE_MODEL_NAME=codellama:7b
+   # INFERENCE_API_TOKEN is not required for Ollama
+   ```
 
 ### Verify Docker Installation
 
 ```bash
-# Check Docker version
 docker --version
-
-# Check Docker Compose version
 docker compose version
-
-# Verify Docker is running
 docker ps
 ```
+
 ---
 
-## Quick Start Deployment
+## Quick Start
 
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/opea-project/Enterprise-Inference.git
-cd Enterprise-Inference/sample_solutions/CodeTranslation
+git clone https://github.com/cld2labs/CodeTrans.git
+cd CodeTrans
 ```
 
-### Set up the Environment
+### Configure the Environment
 
-This application requires an `.env` file in the root directory for proper configuration. Create it with the commands below:
+Copy the example file and fill in your values:
 
 ```bash
-# Create the .env file
-cat > .env << EOF
-# Backend API Configuration
-BACKEND_PORT=5001
-
-# Inference API Configuration
-# INFERENCE_API_ENDPOINT: URL to your inference service (without /v1 suffix)
-#   - For GenAI Gateway: https://genai-gateway.example.com
-#   - For APISIX Gateway: https://apisix-gateway.example.com/CodeLlama-34b-Instruct-hf
-#     Note: APISIX Gateway requires the model name in the URL path
-#
-# INFERENCE_API_TOKEN: Authentication token/API key for the inference service
-#   - For GenAI Gateway: Your GenAI Gateway API key
-#   - For APISIX Gateway: Your APISIX authentication token
-INFERENCE_API_ENDPOINT=https://your-api-endpoint.com/deployment
-INFERENCE_API_TOKEN=your-pre-generated-token-here
-INFERENCE_MODEL_NAME=codellama/CodeLlama-34b-Instruct-hf
-
-# LLM Settings
-LLM_TEMPERATURE=0.2
-LLM_MAX_TOKENS=4096
-
-# Code Translation Settings
-# MAX_CODE_LENGTH: Maximum input code length in characters
-# Note: For Enterprise Inference with CodeLlama-34b (max tokens: 5196)
-#       Set to 4000 characters to stay safely under the token limit with prompt overhead
-MAX_CODE_LENGTH=4000
-MAX_FILE_SIZE=10485760
-
-# CORS Configuration
-CORS_ALLOW_ORIGINS=["http://localhost:5173", "http://localhost:3000"]
-
-# Local URL Endpoint (only needed for non-public domains)
-# If using a local domain like api.example.com mapped to localhost, set to the domain without https://
-# Otherwise, set to: not-needed
-LOCAL_URL_ENDPOINT=not-needed
-
-# SSL Verification Settings
-# Set to false only for dev with self-signed certs
-VERIFY_SSL=true
-EOF
+cp .env.example .env
 ```
 
-Or manually create `.env` with:
+Open `.env` and set `INFERENCE_PROVIDER` and the corresponding variables for your chosen inference path (see [Inference Provider Options](#inference-provider-options) above).
+
+**Key settings reference:**
+
+| Variable | Default | Description |
+|---|---|---|
+| `INFERENCE_PROVIDER` | `remote` | `remote` or `ollama` |
+| `INFERENCE_API_ENDPOINT` | — | Base URL of inference service |
+| `INFERENCE_API_TOKEN` | — | Auth token (not needed for Ollama) |
+| `INFERENCE_MODEL_NAME` | `codellama/CodeLlama-34b-Instruct-hf` | Model identifier |
+| `LLM_TEMPERATURE` | `0.2` | Lower = more deterministic output |
+| `LLM_MAX_TOKENS` | `4096` | Max tokens in translated output |
+| `MAX_CODE_LENGTH` | `8000` | Max input code length in characters |
+| `LOCAL_URL_ENDPOINT` | `not-needed` | Only set if using a private domain in `/etc/hosts` |
+| `VERIFY_SSL` | `true` | Set `false` only for self-signed cert environments |
+
+### Run the Application
 
 ```bash
-# Backend API Configuration
-BACKEND_PORT=5001
-
-# Inference API Configuration
-# INFERENCE_API_ENDPOINT: URL to your inference service (without /v1 suffix)
-#   - For GenAI Gateway: https://genai-gateway.example.com
-#   - For APISIX Gateway: https://apisix-gateway.example.com/CodeLlama-34b-Instruct-hf
-#     Note: APISIX Gateway requires the model name in the URL path
-#
-# INFERENCE_API_TOKEN: Authentication token/API key for the inference service
-#   - For GenAI Gateway: Your GenAI Gateway API key
-#   - For APISIX Gateway: Your APISIX authentication token
-INFERENCE_API_ENDPOINT=https://your-api-endpoint.com/deployment
-INFERENCE_API_TOKEN=your-pre-generated-token-here
-INFERENCE_MODEL_NAME=codellama/CodeLlama-34b-Instruct-hf
-
-# LLM Settings
-LLM_TEMPERATURE=0.2
-LLM_MAX_TOKENS=4096
-
-# Code Translation Settings
-# MAX_CODE_LENGTH: Maximum input code length in characters
-# Note: For Enterprise Inference with CodeLlama-34b (max tokens: 5196)
-#       Set to 4000 characters to stay safely under the token limit with prompt overhead
-MAX_CODE_LENGTH=4000
-MAX_FILE_SIZE=10485760
-
-# CORS Configuration
-CORS_ALLOW_ORIGINS=["http://localhost:5173", "http://localhost:3000"]
-
-# Local URL Endpoint (only needed for non-public domains)
-# If using a local domain like api.example.com mapped to localhost, set to the domain without https://
-# Otherwise, set to: not-needed
-LOCAL_URL_ENDPOINT=not-needed
-
-# SSL Verification Settings
-# Set to false only for dev with self-signed certs
-VERIFY_SSL=true
-```
-
-**Important Configuration Notes:**
-
-- **INFERENCE_API_ENDPOINT**: Your actual inference service URL (replace `https://your-api-endpoint.com/deployment`)
-  - For APISIX/Keycloak deployments, the model name must be included in the endpoint URL (e.g., `https://apisix-gateway.example.com/CodeLlama-34b-Instruct-hf`)
-- **INFERENCE_API_TOKEN**: Your actual pre-generated authentication token
-- **LOCAL_URL_ENDPOINT**: Only needed if using local domain mapping (see [Local Development Configuration](#local-development-configuration))
-- **VERIFY_SSL**: Controls SSL certificate verification (default: `true`)
-  - Set to `false` only for development environments with self-signed certificates
-  - Keep as `true` for production environments
-
-**Note**: The docker-compose.yaml file automatically loads environment variables from `.env` for the backend service.
-
-### Running the Application
-
-Start both API and UI services together with Docker Compose:
-
-```bash
-# From the code-translation directory
+# Build and start both services
 docker compose up --build
 
-# Or run in detached mode (background)
+# Or in detached mode
 docker compose up -d --build
 ```
 
-The API will be available at: `http://localhost:5001`  
-The UI will be available at: `http://localhost:3000`
+- UI: http://localhost:3000
+- API: http://localhost:5001
 
-**View logs**:
+**View logs:**
 
 ```bash
 # All services
 docker compose logs -f
 
 # Backend only
-docker compose logs -f code-trans-backend
+docker compose logs -f transpiler-api
 
 # Frontend only
-docker compose logs -f code-trans-frontend
+docker compose logs -f transpiler-ui
 ```
 
-**Verify the services are running**:
+**Verify services are healthy:**
 
 ```bash
-# Check API health
 curl http://localhost:5001/health
-
-# Check if containers are running
 docker compose ps
 ```
 
-## User Interface
+---
 
-**Using the Application**
+## Using the Application
 
-Make sure you are at the localhost:3000 url
+**Translate code:**
 
-You will be directed to the main page which has each feature
+1. Select the source language using the pill buttons at the top.
+2. Select the target language.
+3. Paste or type your code in the left panel.
+4. Click **Translate Code**.
+5. View the result in the right panel and click **Copy** to copy it.
 
-![User Interface](images/ui.png)
+**Upload a PDF:**
 
-The interface provides:
-
-Translate code:
-
-- Select source language from dropdown (Java, C, C++, Python, Rust, Go)
-- Select target language from dropdown
-- Enter or paste your code in the left textarea
-- Click "Translate Code" button
-- View translated code in the right textarea
-- Click "Copy" to copy the result
-
-Upload a PDF:
-
-- Scroll to the "Alternative: Upload PDF" section
-- Drag and drop a PDF file, or
-- Click "browse" to select a file
-- Wait for code extraction to complete
-- Extracted code appears in the source code box
-
-**UI Configuration**
-
-When running with Docker Compose, the UI automatically connects to the backend API. The frontend is available at `http://localhost:3000` and the API at `http://localhost:5001`.
-
-
-For production deployments, you may want to configure a reverse proxy or update the API URL in the frontend configuration.
+1. Scroll to the **Upload PDF** section.
+2. Drag and drop a PDF, or click to browse.
+3. Code is extracted automatically and placed in the source panel.
+4. Select languages and translate as normal.
 
 ### Stopping the Application
-
 
 ```bash
 docker compose down
@@ -368,17 +285,15 @@ docker compose down
 
 ## Troubleshooting
 
-For comprehensive troubleshooting guidance, common issues, and solutions, refer to:
-
-[Troubleshooting Guide - TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
+For common issues and solutions, see [TROUBLESHOOTING.md](./TROUBLESHOOTING.md).
 
 ---
 
-## Additional Info
+## Validated Models
 
-The following models have been validated with code-translation:
-
-| Model | Hardware |
-|-------|----------|
-| **codellama/CodeLlama-34b-Instruct-hf** | Gaudi |
-| **Qwen/Qwen3-4B-Instruct-2507** | Xeon |
+| Model | Provider | Hardware |
+|---|---|---|
+| `codellama/CodeLlama-34b-Instruct-hf` | Remote | Intel Gaudi |
+| `Qwen/Qwen3-4B-Instruct-2507` | Remote | Intel Xeon |
+| `codellama:34b` | Ollama | Apple Silicon (M-series) |
+| `codellama:7b` | Ollama | Apple Silicon (M-series) — recommended for SLM benchmarking |
