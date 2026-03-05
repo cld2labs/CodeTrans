@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  code, pre, textarea.code-editor {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Courier New', monospace;
+  }
+
+  /* Custom scrollbar for dark mode */
+  .dark ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .dark ::-webkit-scrollbar-track {
+    background: #0f1629;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: #2d3a5e;
+    border-radius: 3px;
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: #3d4e7e;
+  }
+}
+
+@layer components {
+  .code-panel {
+    @apply w-full h-80 px-4 py-3 rounded-xl font-mono text-sm resize-none focus:outline-none transition-colors duration-200;
+  }
+
+  .dark .code-panel {
+    @apply bg-surface-950 text-green-300 border border-slate-700/50 focus:border-purple-500/50 placeholder-slate-600;
+  }
+
+  .code-panel {
+    @apply bg-gray-50 text-gray-900 border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 placeholder-gray-400;
+  }
+
+  .lang-badge {
+    @apply px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer select-none;
+  }
+
+  .dark .lang-badge-active {
+    @apply bg-purple-600/30 text-purple-300 border border-purple-500/50 shadow-glow-purple;
+  }
+
+  .dark .lang-badge-inactive {
+    @apply bg-slate-800/50 text-slate-400 border border-slate-700/50 hover:border-slate-500/50 hover:text-slate-300;
+  }
+
+  .lang-badge-active {
+    @apply bg-blue-100 text-blue-700 border border-blue-300;
+  }
+
+  .lang-badge-inactive {
+    @apply bg-gray-100 text-gray-600 border border-gray-200 hover:border-gray-300;
+  }
+
+  .card {
+    @apply rounded-2xl border transition-colors duration-200;
+  }
+
+  .dark .card {
+    @apply bg-surface-900 border-slate-700/50;
+  }
+
+  .card {
+    @apply bg-white border-gray-200 shadow-sm;
+  }
+
+  .btn-primary {
+    @apply w-full py-3.5 px-6 rounded-xl font-semibold text-white transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  .dark .btn-primary {
+    @apply bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 shadow-glow-purple hover:shadow-glow-cyan disabled:hover:from-purple-600 disabled:hover:to-cyan-600;
+  }
+
+  .btn-primary {
+    @apply bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500;
+  }
+}
+
+/* Glow pulse animation for translate button */
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 15px rgba(168, 85, 247, 0.3); }
+  50% { box-shadow: 0 0 30px rgba(6, 182, 212, 0.5); }
+}
+
+.glow-animate {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
