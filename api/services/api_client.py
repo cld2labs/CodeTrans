@@ -3,9 +3,11 @@ API Client for inference API calls - supports remote OpenAI-compatible APIs and 
 """
 
 import logging
+import time
 import httpx
 from typing import Optional
 import config
+from services.observability import trace_translation
 
 logger = logging.getLogger(__name__)
 
@@ -66,18 +68,28 @@ Only output the translated code without any explanations or markdown formatting.
 
         logger.info(f"[remote] Translating {source_lang} → {target_lang} via completions")
 
-        response = client.completions.create(
-            model=config.INFERENCE_MODEL_NAME,
-            prompt=prompt,
-            max_tokens=config.LLM_MAX_TOKENS,
-            temperature=config.LLM_TEMPERATURE,
-            stop=["```"]
-        )
+        with trace_translation(source_lang, target_lang, self.provider, config.INFERENCE_MODEL_NAME) as obs:
+            obs["input"] = prompt
+            t0 = time.perf_counter()
 
-        if hasattr(response, 'choices') and response.choices:
-            translated = response.choices[0].text.strip()
-            logger.info(f"Translation complete ({len(translated)} chars)")
-            return translated
+            response = client.completions.create(
+                model=config.INFERENCE_MODEL_NAME,
+                prompt=prompt,
+                max_tokens=config.LLM_MAX_TOKENS,
+                temperature=config.LLM_TEMPERATURE,
+                stop=["```"]
+            )
+
+            obs["latency_ms"] = round((time.perf_counter() - t0) * 1000, 2)
+
+            if hasattr(response, 'choices') and response.choices:
+                translated = response.choices[0].text.strip()
+                obs["output"] = translated
+                if hasattr(response, 'usage') and response.usage:
+                    obs["input_tokens"]  = response.usage.prompt_tokens
+                    obs["output_tokens"] = response.usage.completion_tokens
+                logger.info(f"Translation complete ({len(translated)} chars)")
+                return translated
 
         logger.error(f"Unexpected completions response: {response}")
         return ""
@@ -95,27 +107,37 @@ Only output the translated code without any explanations or markdown formatting.
 
         logger.info(f"[ollama] Translating {source_lang} → {target_lang} via chat completions")
 
-        response = client.chat.completions.create(
-            model=config.INFERENCE_MODEL_NAME,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            max_tokens=config.LLM_MAX_TOKENS,
-            temperature=config.LLM_TEMPERATURE,
-        )
+        with trace_translation(source_lang, target_lang, self.provider, config.INFERENCE_MODEL_NAME) as obs:
+            obs["input"] = user_prompt
+            t0 = time.perf_counter()
 
-        if hasattr(response, 'choices') and response.choices:
-            content = response.choices[0].message.content or ""
-            # Strip markdown fences if the model still adds them
-            translated = content.strip()
-            if translated.startswith("```"):
-                lines = translated.split("\n")
-                translated = "\n".join(lines[1:])
-            if translated.endswith("```"):
-                translated = translated[: translated.rfind("```")].rstrip()
-            logger.info(f"Translation complete ({len(translated)} chars)")
-            return translated
+            response = client.chat.completions.create(
+                model=config.INFERENCE_MODEL_NAME,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                max_tokens=config.LLM_MAX_TOKENS,
+                temperature=config.LLM_TEMPERATURE,
+            )
+
+            obs["latency_ms"] = round((time.perf_counter() - t0) * 1000, 2)
+
+            if hasattr(response, 'choices') and response.choices:
+                content = response.choices[0].message.content or ""
+                # Strip markdown fences if the model still adds them
+                translated = content.strip()
+                if translated.startswith("```"):
+                    lines = translated.split("\n")
+                    translated = "\n".join(lines[1:])
+                if translated.endswith("```"):
+                    translated = translated[: translated.rfind("```")].rstrip()
+                obs["output"] = translated
+                if hasattr(response, 'usage') and response.usage:
+                    obs["input_tokens"]  = response.usage.prompt_tokens
+                    obs["output_tokens"] = response.usage.completion_tokens
+                logger.info(f"Translation complete ({len(translated)} chars)")
+                return translated
 
         logger.error(f"Unexpected chat response: {response}")
         return ""

@@ -42,6 +42,14 @@ LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "4096"))
 # SSL Verification Settings
 VERIFY_SSL = os.getenv("VERIFY_SSL", "true").lower() == "true"
 
+# Langfuse Observability
+# Enable only for Ollama or cloud API providers.
+# Leave disabled for enterprise inference (handled separately).
+LANGFUSE_ENABLED    = os.getenv("LANGFUSE_ENABLED", "false").lower() == "true"
+LANGFUSE_PUBLIC_KEY = os.getenv("LANGFUSE_PUBLIC_KEY", "")
+LANGFUSE_SECRET_KEY = os.getenv("LANGFUSE_SECRET_KEY", "")
+LANGFUSE_HOST       = os.getenv("LANGFUSE_HOST", "http://localhost:3001")
+
 # CORS Settings
 CORS_ALLOW_ORIGINS = ["*"]  # Update with specific origins in production
 CORS_ALLOW_CREDENTIALS = True
