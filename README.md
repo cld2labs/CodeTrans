@@ -50,7 +50,7 @@ An AI-powered full-stack application that translates source code between program
 
 This makes CodeTrans suitable for:
 
-- **Enterprise deployments** — connect to a GenAI Gateway, APISIX Gateway, or any managed LLM API
+- **Enterprise deployments** — connect to a GenAI Gateway or any managed LLM API
 - **Air-gapped environments** — run fully offline with Ollama and a locally hosted model
 - **Local experimentation** — quick setup on a laptop with GPU-accelerated inference
 - **Hardware benchmarking** — measure SLM throughput on Apple Silicon, CUDA, or Intel Gaudi hardware
@@ -134,7 +134,7 @@ graph TB
 - **PDF Service** (`services/pdf_service.py`): Extracts code from uploaded PDF files using pattern recognition
 
 **External Integration**
-- **Remote inference**: Any OpenAI-compatible API (OpenAI, Groq, OpenRouter, GenAI Gateway, APISIX Gateway)
+- **Remote inference**: Any OpenAI-compatible API (OpenAI, Groq, OpenRouter, GenAI Gateway)
 - **Local inference**: Ollama running natively on the host machine, accessed from the container via `host.docker.internal:11434`
 
 ### Service Components
@@ -422,15 +422,6 @@ Any enterprise gateway that exposes an OpenAI-compatible `/v1/completions` or `/
 INFERENCE_PROVIDER=remote
 INFERENCE_API_ENDPOINT=https://genai-gateway.example.com
 INFERENCE_API_TOKEN=your-litellm-master-key
-INFERENCE_MODEL_NAME=codellama/CodeLlama-34b-Instruct-hf
-```
-
-**APISIX Gateway (Keycloak auth):**
-
-```bash
-INFERENCE_PROVIDER=remote
-INFERENCE_API_ENDPOINT=https://apisix-gateway.example.com/CodeLlama-34b-Instruct-hf
-INFERENCE_API_TOKEN=your-keycloak-token
 INFERENCE_MODEL_NAME=codellama/CodeLlama-34b-Instruct-hf
 ```
 
