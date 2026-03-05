@@ -1,0 +1,63 @@
+services:
+  transpiler-api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: transpiler-api
+    ports:
+      - "5001:5001"
+    env_file:
+      - .env
+    environment:
+      - INFERENCE_PROVIDER=${INFERENCE_PROVIDER:-remote}
+      - INFERENCE_API_ENDPOINT=${INFERENCE_API_ENDPOINT}
+      - INFERENCE_API_TOKEN=${INFERENCE_API_TOKEN}
+      - INFERENCE_MODEL_NAME=${INFERENCE_MODEL_NAME}
+      - LLM_TEMPERATURE=${LLM_TEMPERATURE:-0.2}
+      - LLM_MAX_TOKENS=${LLM_MAX_TOKENS:-4096}
+      - MAX_CODE_LENGTH=${MAX_CODE_LENGTH:-8000}
+      - MAX_FILE_SIZE=${MAX_FILE_SIZE:-10485760}
+    networks:
+      - transpiler-network
+    extra_hosts:
+      # Allows the container to reach a custom domain mapped in /etc/hosts (remote API use case).
+      # Leave as "not-needed" if your inference endpoint is a public URL.
+      - "${LOCAL_URL_ENDPOINT:-not-needed}:host-gateway"
+      # Allows the container to reach Ollama (or any service) running on the Docker host.
+      # On macOS Docker Desktop this is automatic — the line below is a no-op but harmless.
+      # On Linux with Docker Engine this is REQUIRED for host.docker.internal to resolve.
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  transpiler-ui:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
+    container_name: transpiler-ui
+    ports:
+      - "3000:8080"
+    depends_on:
+      - transpiler-api
+    networks:
+      - transpiler-network
+    restart: unless-stopped
+
+  # NOTE: Ollama is intentionally NOT defined as a Docker service here.
+  #
+  # On macOS (Apple Silicon / M-series), running Ollama inside Docker bypasses
+  # Metal GPU acceleration, resulting in CPU-only inference that is extremely slow.
+  # Ollama must be installed and run natively on the host machine so it can use
+  # the Metal Performance Shaders (MPS) backend for full hardware acceleration.
+  #
+  # The backend container reaches host-side Ollama via host.docker.internal:11434.
+  # See the INFERENCE_PROVIDER=ollama section in .env.example for setup instructions.
+
+networks:
+  transpiler-network:
+    driver: bridge

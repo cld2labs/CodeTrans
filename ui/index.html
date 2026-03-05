@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CodeTrans — AI Code Translator</title>
+    <script>
+      // Apply saved dark mode preference before React renders to avoid flash
+      try {
+        const dark = JSON.parse(localStorage.getItem('darkMode'))
+        if (dark === false) document.documentElement.classList.remove('dark')
+        else document.documentElement.classList.add('dark')
+      } catch (e) {
+        document.documentElement.classList.add('dark')
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
