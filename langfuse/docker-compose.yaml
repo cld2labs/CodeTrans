@@ -1,0 +1,58 @@
+# ============================================================
+# Langfuse — Local Observability Stack for CodeTrans
+# ============================================================
+# Use this stack when INFERENCE_PROVIDER=ollama or a cloud API.
+# For enterprise inference, leave LANGFUSE_ENABLED=false and
+# use the existing enterprise Langfuse instance instead.
+#
+# Usage:
+#   cd langfuse && docker compose up -d
+#   Open http://localhost:3001 and create a project to get keys.
+#   Copy keys into the root .env (LANGFUSE_PUBLIC_KEY / SECRET_KEY).
+# ============================================================
+
+services:
+  langfuse-server:
+    image: langfuse/langfuse:2
+    container_name: langfuse-server
+    depends_on:
+      langfuse-db:
+        condition: service_healthy
+    ports:
+      - "3001:3000"
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@langfuse-db:5432/langfuse
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-change-me-before-production}
+      SALT: ${SALT:-change-me-before-production}
+      NEXTAUTH_URL: http://localhost:3001
+      TELEMETRY_ENABLED: "false"
+      LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: "false"
+    restart: unless-stopped
+    networks:
+      - langfuse-network
+
+  langfuse-db:
+    image: postgres:15-alpine
+    container_name: langfuse-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: langfuse
+    volumes:
+      - langfuse_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - langfuse-network
+
+networks:
+  langfuse-network:
+    driver: bridge
+
+volumes:
+  langfuse_postgres_data:
+    driver: local
