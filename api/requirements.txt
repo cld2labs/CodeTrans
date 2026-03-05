@@ -7,4 +7,4 @@ requests==2.32.3
 httpx==0.28.1
 openai==1.57.2
 pypdf==6.1.1
-langfuse>=2.0.0
+langfuse>=2.0.0,<3.0.0
