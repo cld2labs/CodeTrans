@@ -1,6 +1,4 @@
-<p align="center">
-  <img src="docs/assets/InnovationHub-HeaderImage.png" width="800" alt="Company Logo">
-</p>
+
 
 # CodeTrans — AI-Powered Code Translation
 
@@ -33,6 +31,11 @@ An AI-powered full-stack application that translates source code between program
   - [Project Structure](#project-structure)
   - [Usage Guide](#usage-guide)
   - [Performance Tips](#performance-tips)
+  - [Inference Benchmarks](#inference-benchmarks)
+  - [Model Capabilities](#model-capabilities)
+    - [Qwen3-4B-Instruct-2507](#qwen3-4b-instruct-2507)
+    - [GPT-4o-mini](#gpt-4o-mini)
+    - [Comparison Summary](#comparison-summary)
   - [LLM Provider Configuration](#llm-provider-configuration)
     - [OpenAI](#openai)
     - [Groq](#groq)
@@ -131,9 +134,12 @@ graph TB
     style F fill:#f3e5f5,color:#000
 ```
 
+
+
 ### Architecture Components
 
 **Frontend (React + Vite)**
+
 - Side-by-side code editor with language pill selectors for source and target
 - PDF drag-and-drop upload that populates the source panel automatically
 - Real-time character counter and live status indicator
@@ -142,20 +148,24 @@ graph TB
 - Nginx serves the production build and proxies all `/api/` requests to the backend
 
 **Backend Services**
+
 - **API Server** (`server.py`): FastAPI application with CORS middleware, request validation, and routing
 - **API Client** (`services/api_client.py`): Handles both inference paths — text completions for remote endpoints and chat completions for Ollama — with token-based auth support
 - **PDF Service** (`services/pdf_service.py`): Extracts code from uploaded PDF files using pattern recognition
 
 **External Integration**
+
 - **Remote inference**: Any OpenAI-compatible API (OpenAI, Groq, OpenRouter, GenAI Gateway)
 - **Local inference**: Ollama running natively on the host machine, accessed from the container via `host.docker.internal:11434`
 
 ### Service Components
 
-| Service | Container | Host Port | Description |
-|---|---|---|---|
-| `transpiler-api` | `transpiler-api` | `5001` | FastAPI backend — input validation, PDF extraction, inference orchestration |
-| `transpiler-ui` | `transpiler-ui` | `3000` | React frontend — served by Nginx, proxies `/api/` to the backend |
+
+| Service          | Container        | Host Port | Description                                                                 |
+| ---------------- | ---------------- | --------- | --------------------------------------------------------------------------- |
+| `transpiler-api` | `transpiler-api` | `5001`    | FastAPI backend — input validation, PDF extraction, inference orchestration |
+| `transpiler-ui`  | `transpiler-ui`  | `3000`    | React frontend — served by Nginx, proxies `/api/` to the backend            |
+
 
 > **Ollama is intentionally not a Docker service.** On macOS (Apple Silicon), running Ollama in Docker bypasses Metal GPU (MPS) acceleration, resulting in CPU-only inference. Ollama must run natively on the host so the backend container can reach it via `host.docker.internal:11434`.
 
@@ -221,9 +231,9 @@ docker compose up -d --build
 
 Once containers are running:
 
-- **Frontend UI**: http://localhost:3000
-- **Backend API**: http://localhost:5001
-- **API Docs (Swagger)**: http://localhost:5001/docs
+- **Frontend UI**: [http://localhost:3000](http://localhost:3000)
+- **Backend API**: [http://localhost:5001](http://localhost:5001)
+- **API Docs (Swagger)**: [http://localhost:5001/docs](http://localhost:5001/docs)
 
 #### 5. Verify Services
 
@@ -277,7 +287,7 @@ npm install
 npm run dev
 ```
 
-The Vite dev server proxies `/api/` to `http://localhost:5001`. Open http://localhost:5173.
+The Vite dev server proxies `/api/` to `http://localhost:5001`. Open [http://localhost:5173](http://localhost:5173).
 
 ---
 
@@ -318,7 +328,7 @@ CodeTrans/
 
 **Translate code:**
 
-1. Open the application at http://localhost:3000.
+1. Open the application at [http://localhost:3000](http://localhost:3000).
 2. Select the source language using the pill buttons at the top-left.
 3. Select the target language using the pill buttons at the top-right.
 4. Paste or type your code in the left panel.
@@ -346,6 +356,94 @@ The app defaults to dark mode. Click the theme toggle in the header to switch to
 - **On Apple Silicon**, always run Ollama natively — never inside Docker. The MPS (Metal) GPU backend delivers 5–10x the throughput of CPU-only inference.
 - **On Linux with an NVIDIA GPU**, set `CUDA_VISIBLE_DEVICES` before starting Ollama to target a specific GPU.
 - **For enterprise remote APIs**, choose a model with a large context window (≥16k tokens) to avoid truncation on longer inputs.
+
+---
+
+## Inference Benchmarks
+
+The table below compares inference performance across different providers, deployment modes, and hardware profiles using a standardized code-translation workload (averaged over 3 runs).
+
+
+| Provider       | Model                         | Deployment           | Context Window | Avg Input Tokens | Avg Output Tokens | Avg Tokens / Request | P50 Latency (ms) | P95 Latency (ms) | Throughput (req/s) | Hardware                               |
+| -------------- | ----------------------------- | -------------------- | -------------- | ---------------- | ----------------- | -------------------- | ---------------- | ---------------- | ------------------ | -------------------------------------- |
+| Ollama         | `qwen3:4b-instruct`           | Local                | 262.1K         | 218              | 210.3             | 428.3                | 10,361           | 10,521           | 0.1186             | Apple Silicon (Metal) (Macbook Pro M4) |
+| vLLM           | `Qwen3-4B-Instruct-2507`      | Local                | 262.1K         | 218              | 211.3             | 429.3                | 11,965           | 18,806           | 0.0706             | Apple Silicon (Metal)(Macbook Pro M4)  |
+| [Intel OPEA EI](https://github.com/opea-project/Enterprise-Inference)  | `Qwen/Qwen3-4B-Instruct-2507` | Enterprise (On-Prem) | 8.1K           | 218              | 211.7             | 429.7                | 12,732           | 13,277           | 0.1036             | CPU-only (Xeon)                        |
+| OpenAI (Cloud) | `gpt-4o-mini`                 | API (Cloud)          | 128K           | 216.7            | 204.7             | 421.3                | 4,563            | 6,969            | 0.2126             | N/A                                    |
+
+
+> **Notes:**
+>
+> - All benchmarks use the same CodeTrans translation prompt. Token counts may vary slightly per run due to non-deterministic model output.
+> - Ollama on Apple Silicon uses Metal (MPS) GPU acceleration — running it inside Docker would fall back to CPU-only inference.
+> - [Intel OPEA Enterprise Inference](https://github.com/opea-project/Enterprise-Inference) runs on Intel Xeon CPUs without GPU acceleration.
+
+---
+
+## Model Capabilities
+
+### Qwen3-4B-Instruct-2507
+
+A 4-billion-parameter open-weight code model from Alibaba's Qwen team (July 2025 release), designed for on-prem and edge deployment.
+
+
+| Attribute                   | Details                                                                                                             |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **Parameters**              | 4.0B total (3.6B non-embedding)                                                                                     |
+| **Architecture**            | Transformer with Grouped Query Attention (GQA) — 36 layers, 32 Q-heads / 8 KV-heads                                 |
+| **Context Window**          | 262,144 tokens (256K) native                                                                                        |
+| **Reasoning Mode**          | Non-thinking only (Instruct-2507 variant). Separate Thinking-2507 variant available with always-on chain-of-thought |
+| **Tool / Function Calling** | Supported; MCP (Model Context Protocol) compatible                                                                  |
+| **Structured Output**       | JSON-structured responses supported                                                                                 |
+| **Multilingual**            | 100+ languages and dialects                                                                                         |
+| **Code Benchmarks**         | MultiPL-E: 76.8%, LiveCodeBench v6: 35.1%, BFCL-v3 (tool use): 61.9                                                 |
+| **Quantization Formats**    | GGUF (Q4_K_M ~2.5 GB, Q8_0 ~4.3 GB), AWQ (int4), GPTQ (int4), MLX (4-bit ~2.3 GB)                                   |
+| **Inference Runtimes**      | Ollama, vLLM, llama.cpp, LMStudio, SGLang, KTransformers                                                            |
+| **Fine-Tuning**             | Full fine-tuning and adapter-based (LoRA); 5,000+ community adapters on HuggingFace                                 |
+| **License**                 | Apache 2.0                                                                                                          |
+| **Deployment**              | Local, on-prem, air-gapped, cloud — full data sovereignty                                                           |
+
+
+### GPT-4o-mini
+
+OpenAI's cost-efficient multimodal model, accessible exclusively via cloud API.
+
+
+| Attribute                   | Details                                                                           |
+| --------------------------- | --------------------------------------------------------------------------------- |
+| **Parameters**              | Not publicly disclosed                                                            |
+| **Architecture**            | Multimodal Transformer (text + image input, text output)                          |
+| **Context Window**          | 128,000 tokens input / 16,384 tokens max output                                   |
+| **Reasoning Mode**          | Standard inference (no explicit chain-of-thought toggle)                          |
+| **Tool / Function Calling** | Supported; parallel function calling                                              |
+| **Structured Output**       | JSON mode and strict JSON schema adherence supported                              |
+| **Multilingual**            | Broad multilingual support                                                        |
+| **Code Benchmarks**         | MMMLU: ~87%, strong HumanEval and MBPP scores                                     |
+| **Pricing**                 | $0.15 / 1M input tokens, $0.60 / 1M output tokens (Batch API: 50% discount)       |
+| **Fine-Tuning**             | Supervised fine-tuning via OpenAI API                                             |
+| **License**                 | Proprietary (OpenAI Terms of Use)                                                 |
+| **Deployment**              | Cloud-only — OpenAI API or Azure OpenAI Service. No self-hosted or on-prem option |
+| **Knowledge Cutoff**        | October 2023                                                                      |
+
+
+### Comparison Summary
+
+
+| Capability                      | Qwen3-4B-Instruct-2507           | GPT-4o-mini                       |
+| ------------------------------- | -------------------------------- | --------------------------------- |
+| Code translation                | Yes                              | Yes                               |
+| Function / tool calling         | Yes                              | Yes                               |
+| JSON structured output          | Yes                              | Yes                               |
+| On-prem / air-gapped deployment | Yes                              | No                                |
+| Data sovereignty                | Full (weights run locally)       | No (data sent to cloud API)       |
+| Open weights                    | Yes (Apache 2.0)                 | No (proprietary)                  |
+| Custom fine-tuning              | Full fine-tuning + LoRA adapters | Supervised fine-tuning (API only) |
+| Quantization for edge devices   | GGUF / AWQ / GPTQ / MLX          | N/A                               |
+| Multimodal (image input)        | No                               | Yes                               |
+| Native context window           | 256K                             | 128K                              |
+
+
+> Both models support code translation, function calling, and JSON-structured output. However, only Qwen3-4B offers open weights, data sovereignty, and local deployment flexibility — making it suitable for air-gapped, regulated, or cost-sensitive environments. GPT-4o-mini offers lower latency and higher throughput via OpenAI's cloud infrastructure, with added multimodal capabilities.
 
 ---
 
@@ -381,10 +479,9 @@ Recommended models: `llama3-70b-8192`, `mixtral-8x7b-32768`, `llama-3.1-8b-insta
 
 Runs inference locally on the host machine with full GPU acceleration.
 
-1. Install Ollama: https://ollama.com/download
+1. Install Ollama: [https://ollama.com/download](https://ollama.com/download)
 2. Pull a model:
-
-   ```bash
+  ```bash
    # Production — best translation quality (~20 GB)
    ollama pull codellama:34b
 
@@ -395,22 +492,18 @@ Runs inference locally on the host machine with full GPU acceleration.
    ollama pull deepseek-coder:6.7b
    ollama pull qwen2.5-coder:7b
    ollama pull codellama:13b
-   ```
-
+  ```
 3. Confirm Ollama is running:
-
-   ```bash
+  ```bash
    curl http://localhost:11434/api/tags
-   ```
-
+  ```
 4. Configure `.env`:
-
-   ```bash
+  ```bash
    INFERENCE_PROVIDER=ollama
    INFERENCE_API_ENDPOINT=http://host.docker.internal:11434
    INFERENCE_MODEL_NAME=codellama:7b
    # INFERENCE_API_TOKEN is not required for Ollama
-   ```
+  ```
 
 ### OpenRouter
 
@@ -448,10 +541,9 @@ LOCAL_URL_ENDPOINT=your-private-domain.internal
 
 1. Edit `.env` with the new provider's values.
 2. Restart the backend container:
-
-   ```bash
+  ```bash
    docker compose restart transpiler-api
-   ```
+  ```
 
 No rebuild is needed — all settings are injected at runtime via environment variables.
 
@@ -463,40 +555,50 @@ All variables are defined in `.env` (copied from `.env.example`). The backend re
 
 ### Core LLM Configuration
 
-| Variable | Description | Default | Type |
-|---|---|---|---|
-| `INFERENCE_PROVIDER` | `remote` for any OpenAI-compatible API; `ollama` for local inference | `remote` | string |
-| `INFERENCE_API_ENDPOINT` | Base URL of the inference service (no `/v1` suffix) | — | string |
-| `INFERENCE_API_TOKEN` | Bearer token / API key. Not required for Ollama | — | string |
-| `INFERENCE_MODEL_NAME` | Model identifier passed to the API | `codellama/CodeLlama-34b-Instruct-hf` | string |
+
+| Variable                 | Description                                                          | Default                               | Type   |
+| ------------------------ | -------------------------------------------------------------------- | ------------------------------------- | ------ |
+| `INFERENCE_PROVIDER`     | `remote` for any OpenAI-compatible API; `ollama` for local inference | `remote`                              | string |
+| `INFERENCE_API_ENDPOINT` | Base URL of the inference service (no `/v1` suffix)                  | —                                     | string |
+| `INFERENCE_API_TOKEN`    | Bearer token / API key. Not required for Ollama                      | —                                     | string |
+| `INFERENCE_MODEL_NAME`   | Model identifier passed to the API                                   | `codellama/CodeLlama-34b-Instruct-hf` | string |
+
 
 ### Generation Parameters
 
-| Variable | Description | Default | Type |
-|---|---|---|---|
-| `LLM_TEMPERATURE` | Sampling temperature. Lower = more deterministic output (0.0–2.0) | `0.2` | float |
-| `LLM_MAX_TOKENS` | Maximum tokens in the translated output | `4096` | integer |
-| `MAX_CODE_LENGTH` | Maximum input code length in characters | `4000` | integer |
+
+| Variable          | Description                                                       | Default | Type    |
+| ----------------- | ----------------------------------------------------------------- | ------- | ------- |
+| `LLM_TEMPERATURE` | Sampling temperature. Lower = more deterministic output (0.0–2.0) | `0.2`   | float   |
+| `LLM_MAX_TOKENS`  | Maximum tokens in the translated output                           | `4096`  | integer |
+| `MAX_CODE_LENGTH` | Maximum input code length in characters                           | `4000`  | integer |
+
 
 ### File Upload Limits
 
-| Variable | Description | Default | Type |
-|---|---|---|---|
+
+| Variable        | Description                                       | Default    | Type    |
+| --------------- | ------------------------------------------------- | ---------- | ------- |
 | `MAX_FILE_SIZE` | Maximum PDF upload size in bytes (default: 10 MB) | `10485760` | integer |
+
 
 ### Session Management
 
-| Variable | Description | Default | Type |
-|---|---|---|---|
+
+| Variable             | Description                                                           | Default | Type   |
+| -------------------- | --------------------------------------------------------------------- | ------- | ------ |
 | `CORS_ALLOW_ORIGINS` | Allowed CORS origins (comma-separated or `*`). Restrict in production | `["*"]` | string |
+
 
 ### Server Configuration
 
-| Variable | Description | Default | Type |
-|---|---|---|---|
-| `BACKEND_PORT` | Port the FastAPI server listens on | `5001` | integer |
-| `LOCAL_URL_ENDPOINT` | Private domain in `/etc/hosts` the container must resolve. Leave as `not-needed` if not applicable | `not-needed` | string |
-| `VERIFY_SSL` | Set `false` only for environments with self-signed certificates | `true` | boolean |
+
+| Variable             | Description                                                                                        | Default      | Type    |
+| -------------------- | -------------------------------------------------------------------------------------------------- | ------------ | ------- |
+| `BACKEND_PORT`       | Port the FastAPI server listens on                                                                 | `5001`       | integer |
+| `LOCAL_URL_ENDPOINT` | Private domain in `/etc/hosts` the container must resolve. Leave as `not-needed` if not applicable | `not-needed` | string  |
+| `VERIFY_SSL`         | Set `false` only for environments with self-signed certificates                                    | `true`       | boolean |
+
 
 ---
 
@@ -514,7 +616,7 @@ All variables are defined in `.env` (copied from `.env.example`). The backend re
 ### Frontend
 
 - **Framework**: React 18 with Vite (fast HMR and production bundler)
-- **Styling**: Tailwind CSS v3 with custom `surface-*` dark mode color palette
+- **Styling**: Tailwind CSS v3 with custom `surface-`* dark mode color palette
 - **Production Server**: Nginx — serves the built assets and proxies `/api/` to the backend container
 - **UI Features**: Language pill selectors, side-by-side code editor, drag-and-drop PDF upload, real-time character counter, one-click copy, dark/light theme toggle
 
