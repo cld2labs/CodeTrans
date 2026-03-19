@@ -33,7 +33,7 @@ git --version
 New to contributing?
 
 1. Open an issue or pick an existing one to work on.
-2. Sync your branch from `dev`.
+2. Fork the repo and create a branch from `main`.
 3. Follow the local setup guide below.
 4. Run the app locally and verify your change before opening a PR.
 
@@ -43,13 +43,15 @@ New to contributing?
   - [Get help or ask a question?](#get-help-or-ask-a-question)
   - [Report a bug?](#report-a-bug)
   - [Suggest a new feature?](#suggest-a-new-feature)
+  - [Fork and clone the repo?](#fork-and-clone-the-repo)
   - [Set up CodeTrans locally?](#set-up-codetrans-locally)
   - [Start contributing code?](#start-contributing-code)
   - [Improve the documentation?](#improve-the-documentation)
   - [Submit a pull request?](#submit-a-pull-request)
+- [Branching model](#branching-model)
+- [Commit conventions](#commit-conventions)
 - [Code guidelines](#code-guidelines)
 - [Pull request checklist](#pull-request-checklist)
-- [Branching model](#branching-model)
 - [Thank you](#thank-you)
 
 ---
@@ -74,6 +76,39 @@ New to contributing?
 2. Explain the problem, who it helps, and how it fits CodeTrans.
 3. If the change is large, get alignment in the issue before writing code.
 
+### Fork and clone the repo?
+
+All contributions should come from a **fork** of the repository. This keeps the upstream repo clean and lets maintainers review changes via pull requests.
+
+#### Step 1: Fork the repository
+
+Click the **Fork** button at the top-right of the [CodeTrans repo](https://github.com/cld2labs/CodeTrans) to create a copy under your GitHub account.
+
+#### Step 2: Clone your fork
+
+```bash
+git clone https://github.com/<your-username>/CodeTrans.git
+cd CodeTrans
+```
+
+#### Step 3: Add the upstream remote
+
+```bash
+git remote add upstream https://github.com/cld2labs/CodeTrans.git
+```
+
+This lets you pull in the latest changes from the original repo.
+
+#### Step 4: Create a branch
+
+Always branch off `main`. See [Branching model](#branching-model) for naming conventions.
+
+```bash
+git checkout main
+git pull upstream main
+git checkout -b <type>/<short-description>
+```
+
 ### Set up CodeTrans locally?
 
 #### Prerequisites
@@ -88,14 +123,7 @@ New to contributing?
 
 #### Option 1: Local development
 
-##### Step 1: Clone the repository
-
-```bash
-git clone https://github.com/cld2labs/CodeTrans.git
-cd CodeTrans
-```
-
-##### Step 2: Configure environment variables
+##### Step 1: Configure environment variables
 
 Create a root `.env` file from the example:
 
@@ -120,7 +148,7 @@ INFERENCE_API_ENDPOINT=http://localhost:11434
 INFERENCE_MODEL_NAME=codellama:7b
 ```
 
-##### Step 3: Install backend dependencies
+##### Step 2: Install backend dependencies
 
 ```bash
 cd api
@@ -130,7 +158,7 @@ pip install -r requirements.txt
 cd ..
 ```
 
-##### Step 4: Install frontend dependencies
+##### Step 3: Install frontend dependencies
 
 ```bash
 cd ui
@@ -138,7 +166,7 @@ npm install
 cd ..
 ```
 
-##### Step 5: Start the backend
+##### Step 4: Start the backend
 
 ```bash
 cd api
@@ -148,7 +176,7 @@ uvicorn server:app --reload --port 5001
 
 The backend runs at `http://localhost:5001`.
 
-##### Step 6: Start the frontend
+##### Step 5: Start the frontend
 
 Open a second terminal:
 
@@ -159,7 +187,7 @@ npm run dev
 
 The Vite dev server runs at `http://localhost:5173`.
 
-##### Step 7: Access the application
+##### Step 6: Access the application
 
 - Frontend: `http://localhost:5173`
 - Backend health check: `http://localhost:5001/health`
@@ -190,33 +218,78 @@ This starts:
 ### Start contributing code?
 
 1. Open or choose an issue.
-2. Create a feature branch from `dev`.
+2. [Fork the repo](#fork-and-clone-the-repo) and create a feature branch from `main`.
 3. Keep the change focused on a single problem.
 4. Run the app locally and verify the affected workflow.
 5. Update docs when behavior, setup, configuration, or architecture changes.
-6. Open a pull request back to `dev`.
+6. Open a pull request back to upstream `main`.
 
 ### Improve the documentation?
 
 Documentation updates are welcome. Relevant files currently live in:
 
 - [`README.md`](./README.md)
+- [`CONTRIBUTING.md`](./CONTRIBUTING.md)
 - [`TROUBLESHOOTING.md`](./TROUBLESHOOTING.md)
 - [`SECURITY.md`](./SECURITY.md)
 - [`DISCLAIMER.md`](./DISCLAIMER.md)
-- [`ui/src`](./ui/src)
 
 ### Submit a pull request?
 
-Follow the checklist below before opening your PR. Your pull request should:
+1. Push your branch to your fork.
+2. Go to the [CodeTrans repo](https://github.com/cld2labs/CodeTrans) and click **Compare & pull request**.
+3. Set the base branch to `main`.
+4. Fill in the PR template (it loads automatically).
+5. Submit the pull request.
 
-- Stay focused on one issue or topic.
-- Explain what changed and why.
-- Include manual verification steps.
-- Include screenshots or short recordings for UI changes.
-- Reference the related GitHub issue when applicable.
+A maintainer will review your PR. You may be asked to make changes — push additional commits to the same branch and they will be added to the PR automatically.
 
-Note: pull requests should target the `dev` branch.
+Before opening your PR, sync with upstream to avoid merge conflicts:
+
+```bash
+git fetch upstream
+git rebase upstream/main
+```
+
+Follow the checklist below and the [Pull request checklist](#pull-request-checklist) section.
+
+---
+
+## Branching model
+
+- Fork the repo and base new work from `main`.
+- Open pull requests against upstream `main`.
+- Use descriptive branch names with a type prefix:
+
+| Prefix | Use |
+|---|---|
+| `feat/` | New features or enhancements |
+| `fix/` | Bug fixes |
+| `docs/` | Documentation changes |
+| `refactor/` | Code restructuring (no behavior change) |
+| `chore/` | Dependency updates, CI changes, tooling |
+
+Examples: `feat/add-rust-support`, `fix/ollama-timeout`, `docs/update-benchmarks`
+
+---
+
+## Commit conventions
+
+Use [Conventional Commits](https://www.conventionalcommits.org/) format:
+
+```
+<type>(<optional scope>): <short description>
+```
+
+Examples:
+
+```bash
+git commit -m "feat(api): add timeout config for Ollama requests"
+git commit -m "fix(ui): resolve dark mode flash on initial load"
+git commit -m "docs: update inference benchmarks table"
+```
+
+Keep commits focused — one logical change per commit.
 
 ---
 
@@ -243,18 +316,9 @@ Before submitting your pull request, confirm the following:
 - You kept the pull request scoped to one issue or topic.
 - You added screenshots for UI changes when relevant.
 - You did not commit secrets or local generated data.
-- You are opening the pull request against `dev`.
+- You are opening the pull request against `main`.
 
 If one or more of these are missing, the pull request may be sent back for changes before review.
-
----
-
-## Branching model
-
-- Base new work from `dev`.
-- Open pull requests against `dev`.
-- Use descriptive branch names such as `fix/pdf-upload-validation` or `docs/update-contributing-guide`.
-- Rebase or merge the latest `dev` before opening your PR if your branch has drifted.
 
 ---
 
