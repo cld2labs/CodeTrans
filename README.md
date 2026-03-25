@@ -366,18 +366,21 @@ The app defaults to dark mode. Click the theme toggle in the header to switch to
 The table below compares inference performance across different providers, deployment modes, and hardware profiles using a standardized code-translation workload (averaged over 3 runs).
 
 
-| Provider       | Model                         | Deployment           | Context Window | Avg Input Tokens | Avg Output Tokens | Avg Tokens / Request | P50 Latency (ms) | P95 Latency (ms) | Throughput (req/s) | Hardware                               |
-| -------------- | ----------------------------- | -------------------- | -------------- | ---------------- | ----------------- | -------------------- | ---------------- | ---------------- | ------------------ | -------------------------------------- |
-| Ollama         | `qwen3:4b-instruct`           | Local                | 262.1K         | 218              | 210.3             | 428.3                | 10,361           | 10,521           | 0.1186             | Apple Silicon (Metal) (Macbook Pro M4) |
-| vLLM           | `Qwen3-4B-Instruct-2507`      | Local                | 262.1K         | 218              | 211.3             | 429.3                | 11,965           | 18,806           | 0.0706             | Apple Silicon (Metal)(Macbook Pro M4)  |
-| [Intel OPEA EI](https://github.com/opea-project/Enterprise-Inference)  | `Qwen/Qwen3-4B-Instruct-2507` | Enterprise (On-Prem) | 8.1K           | 218              | 211.7             | 429.7                | 12,732           | 13,277           | 0.1036             | CPU-only (Xeon)                        |
-| OpenAI (Cloud) | `gpt-4o-mini`                 | API (Cloud)          | 128K           | 216.7            | 204.7             | 421.3                | 4,563            | 6,969            | 0.2126             | N/A                                    |
+| Provider       | Model                         | Deployment           | Context Window | Benchmark Max Tokens | Avg Input Tokens | Avg Output Tokens | Avg Tokens / Request | P50 Latency (ms) | P95 Latency (ms) | Throughput (req/s) | Hardware                               |
+| -------------- | ----------------------------- | -------------------- | -------------- | -------------------- | ---------------- | ----------------- | -------------------- | ---------------- | ---------------- | ------------------ | -------------------------------------- |
+| Ollama         | `qwen3:4b-instruct`           | Local                | 262.1K         | 8,192                | 218              | 210.3             | 428.3                | 10,361           | 10,521           | 0.1186             | Apple Silicon (Metal) (Macbook Pro M4) |
+| vLLM           | `Qwen3-4B-Instruct-2507`      | Local                | 262.1K         | 2,048 *              | 218              | 211.3             | 429.3                | 11,965           | 18,806           | 0.0706             | Apple Silicon (Metal) (Macbook Pro M4) |
+| [Intel OPEA EI](https://github.com/opea-project/Enterprise-Inference)  | `Qwen/Qwen3-4B-Instruct-2507` | Enterprise (On-Prem) | 8.1K           | 4,096                | 218              | 211.7             | 429.7                | 12,732           | 13,277           | 0.1036             | CPU-only (Xeon)                        |
+| OpenAI (Cloud) | `gpt-4o-mini`                 | API (Cloud)          | 128K           | 4,096                | 216.7            | 204.7             | 421.3                | 4,563            | 6,969            | 0.2126             | N/A                                    |
 
 
 > **Notes:**
 >
-> - All benchmarks use the same CodeTrans translation prompt. Token counts may vary slightly per run due to non-deterministic model output.
-> - Ollama on Apple Silicon uses Metal (MPS) GPU acceleration — running it inside Docker would fall back to CPU-only inference.
+> - **Benchmark Max Tokens** = `LLM_MAX_TOKENS` setting used during benchmarking (max output tokens per request).
+> - \* vLLM was served with `--max-model-len 4096`, which is shared between input and output. `LLM_MAX_TOKENS` was set to 2,048 to leave room for input tokens within the 4,096 total context.
+> - All benchmarks use the same CodeTrans translation prompt and identical inputs (3 runs: small python→java, medium python→rust, large python→go). Token counts may vary slightly per run due to non-deterministic model output.
+> - Ollama on Apple Silicon uses Metal (MPS) GPU acceleration — running it inside Docker would fall back to CPU-only inference. The `qwen3:4b-instruct` tag must be used (not `qwen3:4b`) to disable the default thinking mode.
+> - vLLM on Apple Silicon uses [vllm-metal](https://github.com/vllm-project/vllm-metal) — the standard `pip install vllm` does not support macOS.
 > - [Intel OPEA Enterprise Inference](https://github.com/opea-project/Enterprise-Inference) runs on Intel Xeon CPUs without GPU acceleration.
 
 ---
