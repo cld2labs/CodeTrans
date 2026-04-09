@@ -33,7 +33,7 @@ An AI-powered full-stack application that translates source code between program
   - [Project Structure](#project-structure)
   - [Usage Guide](#usage-guide)
   - [Performance Tips](#performance-tips)
-  - [Inference Benchmarks](#inference-benchmarks)
+  - [Inference Metrics](#inference-metrics)
   - [Model Capabilities](#model-capabilities)
     - [Qwen3-4B-Instruct-2507](#qwen3-4b-instruct-2507)
     - [GPT-4o-mini](#gpt-4o-mini)
@@ -361,7 +361,7 @@ The app defaults to dark mode. Click the theme toggle in the header to switch to
 
 ---
 
-## Inference Benchmarks
+## Inference Metrics
 
 The table below compares inference performance across different providers, deployment modes, and hardware profiles using a standardized code-translation workload (averaged over 3 runs).
 
@@ -377,7 +377,7 @@ The table below compares inference performance across different providers, deplo
 > **Notes:**
 >
 > - Context Window for Ollama (8K) and vLLM (4K) reflects the `LLM_MAX_TOKENS` / `--max-model-len` used during benchmarking, not the model's native 262K context. vLLM shares its 4K context between input and output tokens.
-> - All benchmarks use the same CodeTrans translation prompt and identical inputs (3 runs: small python→java, medium python→rust, large python→go). Token counts may vary slightly per run due to non-deterministic model output.
+> - All metrics use the same CodeTrans translation prompt and identical inputs (3 runs: small python→java, medium python→rust, large python→go). Token counts may vary slightly per run due to non-deterministic model output.
 > - Ollama on Apple Silicon uses Metal (MPS) GPU acceleration — running it inside Docker would fall back to CPU-only inference. The `qwen3:4b-instruct` tag must be used (not `qwen3:4b`) to disable the default thinking mode.
 > - vLLM on Apple Silicon uses [vllm-metal](https://github.com/vllm-project/vllm-metal) — the standard `pip install vllm` does not support macOS.
 > - [Intel OPEA Enterprise Inference](https://github.com/opea-project/Enterprise-Inference) runs on Intel Xeon CPUs without GPU acceleration.
